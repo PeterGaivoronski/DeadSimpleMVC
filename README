@@ -1,1 +1,35 @@
- 
+Dead Simple MVC
+
+Client-side MVC for busy people
+
+Prerequesites:
+
+P.js for object-classes - https://github.com/jayferd/pjs
+
+jQuery for DOM manipulation - http://jquery.com/
+
+jQuery pubsub for view/controller decoupling and model-view update signals - https://github.com/cowboy/jquery-tiny-pubsub
+
+node-uuid for unique model IDs - https://github.com/broofa/node-uuid
+
+Merge-sort to sort things in place in all browsers (including chrome) - https://github.com/justinforce/merge-sort
+
+Optional:
+
+Handlebars.js for templating - http://handlebarsjs.com/
+
+What is MVC?
+
+Model - View - Controller is a development pattern that splits off the data into "model" objects, the presentation into "view" objects, and the user interaction into "controller" objects. That way your code can stay clean and organized as you build out your applications. For a more in-depth look, see Wikipedia. 
+
+INSTALL:
+
+Put the js or min.js file somewhere in your project's directory and then include it via: <script src = "[path]/DeadSimpleMVC.min.js"></script> 
+
+TUTORIAL:
+
+For a tutorial/example, see the project's main page: http://deadsimplemvc.com
+
+LICENSE:
+
+MIT License. See LICENSE file for details.
