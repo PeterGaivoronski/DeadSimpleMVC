@@ -8,7 +8,6 @@
 
   $.subscribe = function() {
     o.on.apply(o, arguments);
-    console.log(o)
   };
 
   $.unsubscribe = function() {

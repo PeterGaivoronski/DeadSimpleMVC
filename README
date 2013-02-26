@@ -20,7 +20,7 @@ Handlebars.js for templating - http://handlebarsjs.com/
 
 What is MVC?
 
-Model - View - Controller is a development pattern that splits off the data into "model" objects, the presentation into "view" objects, and the user interaction into "controller" objects. That way your code can stay clean and organized as you build out your applications. For a more in-depth look, see Wikipedia. 
+Model - View - Controller is a development pattern that splits off the data into "model" objects, the presentation into "view" objects, and the user interaction into "controller" objects. That way your code can stay clean and organized as you build out your applications. For a more in-depth look, see Wikipedia: http://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller 
 
 INSTALL:
 

@@ -43,33 +43,46 @@ if(prereqs === false){
    	var DS = {};
 
     var DSClass = Class(function(Proto){
+        Proto._id = undefined;
+        Proto._deleted = false;
         Proto.init = function(){
+            this._id = uuid.v4();
+        }
+        Proto.subscribe = function(event, func){
+            $.subscribe(event+"."+this._id, func);
+        }
+        Proto.unsubscribe = function(event){
+            $.unsubscribe(event+"."+this._id);
+        }
+        Proto.unsubscribeAll = function(){
+            $.unsubscribe("."+this._id);
+        }
+        Proto.del = function(){
+            this._deleted = true;
+            this.unsubscribeAll();
         }
     });
 
    	var Model = Class(DSClass, function(Proto, Super){
-        Proto._id = undefined;
-        Proto._deleted = false;
         Proto.init = function(properties){
             Super.init.call(this);
-            this._id = uuid.v4();
             this.modify(properties);
         }
         Proto.publish = function(action){
-            console.log('publishing action: '+action)
+            //console.log('publishing action: '+action)
             $.publish('/models/'+action, [this]);
         }
         Proto.modify = function(properties){
             for(var property in properties){
                 if(this.validate(property, properties[property])){
-                    console.log("setting "+property+" to "+properties[property])
+                    //console.log("setting "+property+" to "+properties[property])
                     this[property] = properties[property];
                 }
             }
             this.publish("modify");
         }
         Proto.del = function(){
-            this._deleted = true;
+            Super.del.call(this);
             this.publish("delete");
         }
         Proto.validate = function(property, value){
@@ -111,6 +124,7 @@ if(prereqs === false){
             this.models = newList;
         }
         Proto.sortByParam = function(paramName, ascending, apply){
+            //console.log('sorting by: '+paramName+' ascending: '+ascending+' apply: '+apply);
             var sorted = this.models.mergeSort(function(a, b){
                 if(a[paramName] > b[paramName]){
                     if (ascending === true) return 1;
@@ -122,6 +136,7 @@ if(prereqs === false){
                 }
                 return 0;
             });
+            //console.log('sorted models: '+JSON.stringify(sorted))
             if(apply === true) this.models = sorted;
             else return sorted;
         }
@@ -150,14 +165,12 @@ if(prereqs === false){
     });
 
     var View = Class(Displayer, function(Proto, Super){
-        Proto._id = undefined;
         Proto.model = undefined;
     	Proto.init = function(model, DOM){
             Super.init.call(this);
-            this._id = uuid.v4();
             this.model =  model;
-            this.subscribeModel("modify."+this._id, $.proxy(this.modifyFunc, this));
-            this.subscribeModel("delete."+this._id, $.proxy(this.deleteFunc, this));
+            this.subscribeModel("modify", $.proxy(this.modifyFunc, this));
+            this.subscribeModel("delete", $.proxy(this.deleteFunc, this));
             this.DOM = DOM;
             this.render();
     	}
@@ -168,28 +181,29 @@ if(prereqs === false){
             this.assignViewEvents();
     	}
         Proto.renderTemplate = function(){
-            return this.template({model: this.model});
+            return this.template(this.genTemplateArguments());
+        }
+        Proto.genTemplateArguments = function(){
+            return {model: this.model};
         }
         Proto.subscribeModel = function(action, func){
-            $.subscribe('/models/'+action, func);
+            this.subscribe('/models/'+action, func);
         }
         Proto.unsubscribeModel = function(action){
-            $.unsubscribe('/models/'+action);
+            this.unsubscribe('/models/'+action);
         }
         Proto.modifyFunc = function(_, model){
-            console.log("caught modify event")
             if(this.model === model){
                 this.render();
             }
         }
         Proto.deleteFunc = function(_, model){
             if(this.model === model){
-                console.log("publishing view delete. view is: "+this.DOM.html()+" this view's model is: "+this.model.name)
                 $.publish("/views/delete", [this]);
                 this.DOM.html("");
                 this.DOM = undefined;
                 this.model = undefined;
-                $.unsubscribe("."+this._id);
+                this.unsubscribeAll();
             }
         }
     });
@@ -201,19 +215,18 @@ if(prereqs === false){
         Proto.modelViews = undefined;
         Proto.currentSortProperties = undefined;
         Proto.viewClass = undefined;
-        Proto.init = function(models, viewClass, DOM){
+        Proto.init = function(models, DOM){
             Super.init.call(this);
             this.models = models;
             this.modelViews = {};
             this.DOM = DOM;
-            this.viewClass = viewClass;
             for(var i = 0; i < models.length; i++){
                 this.createModelView(model);
             }
-            console.log("model views created: "+this.modelViews)
+            //console.log("model views created: "+this.modelViews)
             this.currentSortProperties = {};
             this.refresh();
-            $.subscribe('/views/delete', $.proxy(this.refresh, this));
+            this.subscribe('/views/delete', $.proxy(this.refresh, this));
         };
         Proto.clear = function(){
             var html = this.renderTemplate();
@@ -222,8 +235,11 @@ if(prereqs === false){
         };
         Proto.renderTemplate = function(){
             var html = "<div class = 'content'></div>";
-            if (this.template !== undefined) html = this.template({});
+            if (this.template !== undefined) html = this.template(this.genTemplateArguments());
             return html;
+        }
+        Proto.genTemplateArguments = function(){
+            return {};
         }
         Proto.appendView = function(model){
             if(this.modelViews[model._id] === undefined) this.createModelView(model);
@@ -265,7 +281,7 @@ if(prereqs === false){
     	Proto.init = function(){
             Super.init.call(this);
             for(var event in this.events){
-                $.subscribe('/views/'+event, this.events[event]);
+                this.subscribe('/views/'+event, this.events[event]);
             }
     	};
     });
