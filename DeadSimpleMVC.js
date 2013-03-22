@@ -62,11 +62,13 @@ if(prereqs === false){
             this.unsubscribeAll();
         }
     });
+    DS.DSClass = DSClass;
 
    	var Model = Class(DSClass, function(Proto, Super){
         Proto.init = function(properties){
             Super.init.call(this);
             this.modify(properties);
+            DS.ModelRegistry[this._id] = this;
         }
         Proto.publish = function(action){
             //console.log('publishing action: '+action)
@@ -82,66 +84,110 @@ if(prereqs === false){
             this.publish("modify");
         }
         Proto.del = function(){
+            delete DS.ModelRegistry[this._id];
             Super.del.call(this);
             this.publish("delete");
+            console.log("delete pub sent")
         }
         Proto.validate = function(property, value){
             return true;
         }
-        Proto.serialize = function(){
+        Proto.serialize = function(general, parse){
             var so = {};
             for(var field in this){
                 if(typeof this[field] !== "function"){
-                    so[field] = this[field];
+                    switch(field){
+                        case '_id':
+                        case '_deleted':
+                            if(general !== true){
+                                so[field] = this[field];
+                            }
+                            break;
+                        default:
+                            so[field] = this[field];
+                            break;
+                    }
                 }
             }
-            return JSON.stringify(so);
+            so = JSON.stringify(so)
+            if(parse !== true) return so;
+            else return JSON.parse(so);
         }
     });
     DS.Model = Model;
+    DS.ModelRegistry = {}
 
     var Collection = Class(DSClass, function(Proto, Super){
-        Proto.models = undefined;
-        Proto.init = function(models){
+        Proto.elements = undefined;
+        Proto.registry = undefined;
+        Proto.init = function(elements, registry){
             Super.init.call(this);
-            this.models = models;
+            this.registry = registry;
+            this.elements = [];
+            for (var i = 0; i < elements.length; i++) {
+                this.addElement(elements[i]);
+            }
+            DS.CollectionRegistry[this._id] = this;
+            this.subscribe("/models/delete", $.proxy(this.deleteFunc, this));
         }
+        //pass in element itself, not uuid
         Proto.addElement = function(element){
-            this.models.push(element);
+            this.elements.push(element._id);
         }
+        //pass in element itself, not uuid
         Proto.removeElement = function(element){
             var newList = [];
-            for(var i = 0; i < this.models.length; i++){
-                if(this.models[i] !== element) newList.push(this.models[i]);
+            for(var i = 0; i < this.elements.length; i++){
+                if(this.registry[this.elements[i]] !== element) newList.push(this.elements[i]);
             }
-            this.models = newList;
+            this.elements = newList;
         }
-        Proto.removeDeleted = function(){
-            var newList = [];
-            for(var i = 0; i < this.models.length; i++){
-                if(this.models[i]._deleted === false) newList.push(this.models[i]);
+        //auto-remove any deleted models from collections
+        Proto.deleteFunc = function(_, model){
+            if(this.elements.indexOf(model._id) !== -1){
+                this.removeElement(model)
             }
-            this.models = newList;
+        }
+        // Proto.removeDeleted = function(){
+        //     var newList = [];
+        //     for(var i = 0; i < this.elements.length; i++){
+        //         if(this.elements[i]._deleted === false) newList.push(this.elements[i]);
+        //     }
+        //     this.elements = newList;
+        // }
+        Proto.del = function(){
+            delete DS.CollectionRegistry[this._id];
+            Super.del.call(this);
+        }
+    });
+    DS.Collection = Collection;
+    DS.CollectionRegistry = {}
+
+    var ModelCollection = Class(DS.Collection, function(Proto, Super){
+        Proto.init = function(elements){
+            Super.init.call(this, elements, DS.ModelRegistry);
         }
         Proto.sortByParam = function(paramName, ascending, apply){
             //console.log('sorting by: '+paramName+' ascending: '+ascending+' apply: '+apply);
-            var sorted = this.models.mergeSort(function(a, b){
-                if(a[paramName] > b[paramName]){
+            var sorted = this.elements.mergeSort(function(a, b){
+                var aRef = DS.ModelRegistry[a]
+                var bRef = DS.ModelRegistry[b]
+                if(aRef[paramName] > bRef[paramName]){
                     if (ascending === true) return 1;
                     else return -1;
                 }
-                if(a[paramName] < b[paramName]){
+                if(aRef[paramName] < bRef[paramName]){
                     if (ascending === true) return -1;
                     else return 1;
                 }
                 return 0;
             });
             //console.log('sorted models: '+JSON.stringify(sorted))
-            if(apply === true) this.models = sorted;
+            if(apply === true) this.elements = sorted;
             else return sorted;
         }
-    });
-    DS.Collection = Collection;
+    })
+    DS.ModelCollection = ModelCollection
 
     var Displayer = Class(DSClass, function(Proto, Super){
         Proto.DOM = undefined;
@@ -149,14 +195,20 @@ if(prereqs === false){
         Proto.template = undefined;
         Proto.assignViewEvents = function(){
             for(var domHook in this.actions){
-                (function(dom, action, self){
-                    var domEvent = action[0];
-                    var viewEvent = action[1];
+                var dom = this.DOM.find(domHook);
+                var action = this.actions[domHook];
+                var i = 0;
+                for (var domEvent in action){
+                    //action[domEvent] is an array to allow sending multiple view events per domEvent
                     dom.off(domEvent);
-                    dom.on(domEvent, function(){
-                        self.sendViewEvent(viewEvent);
-                    });
-                })(this.DOM.find(domHook), this.actions[domHook], this)
+                    for (i = 0; i < action[domEvent].length; i++){
+                        (function(dom, domEvent, self, action, i){
+                            dom.on(domEvent, function(){
+                                self.sendViewEvent(action[domEvent][i]);
+                            });
+                        })(dom, domEvent, this, action, i)
+                    }
+                }
             }
         }
         Proto.sendViewEvent = function(event){
@@ -168,11 +220,13 @@ if(prereqs === false){
         Proto.model = undefined;
     	Proto.init = function(model, DOM){
             Super.init.call(this);
-            this.model =  model;
+            if(model !== null) this.model =  model._id;
+            else this.model = null;
             this.subscribeModel("modify", $.proxy(this.modifyFunc, this));
             this.subscribeModel("delete", $.proxy(this.deleteFunc, this));
             this.DOM = DOM;
             this.render();
+            DS.ViewRegistry[this._id] = this;
     	}
     	Proto.render = function(){
             if(typeof this.model === "undefined") return;
@@ -180,11 +234,14 @@ if(prereqs === false){
     		this.DOM.html(html);
             this.assignViewEvents();
     	}
+        Proto.getModel = function(){
+            return DS.ModelRegistry[this.model]
+        }
         Proto.renderTemplate = function(){
             return this.template(this.genTemplateArguments());
         }
         Proto.genTemplateArguments = function(){
-            return {model: this.model};
+            return {model: DS.ModelRegistry[this.model]};
         }
         Proto.subscribeModel = function(action, func){
             this.subscribe('/models/'+action, func);
@@ -193,40 +250,47 @@ if(prereqs === false){
             this.unsubscribe('/models/'+action);
         }
         Proto.modifyFunc = function(_, model){
-            if(this.model === model){
+            if(this.model === model._id){
                 this.render();
             }
         }
         Proto.deleteFunc = function(_, model){
-            if(this.model === model){
+            if(this.model === model._id){
+                //console.log("delete function called ")
+                //console.log(this)
+                this.del()
+                this.DOM.html("")
                 $.publish("/views/delete", [this]);
-                this.DOM.html("");
-                this.DOM = undefined;
-                this.model = undefined;
-                this.unsubscribeAll();
             }
+        }
+        Proto.del = function(){
+            this.model = undefined;
+            delete DS.ViewRegistry[this._id];
+            Super.del.call(this);
         }
     });
     DS.View = View;
+    DS.ViewRegistry = {}
 
     //metaviews themselves don't listen for model changes, because they are not associated with any model in particular. instead, they create and delete views to be able to display collections in ordered ways.
     var MetaView = Class(Displayer, function(Proto, Super){
         Proto.models = undefined;
         Proto.modelViews = undefined;
+        Proto.limitIndex = 0;
+        Proto.limit = null;
         Proto.currentSortProperties = undefined;
         Proto.viewClass = undefined;
-        Proto.init = function(models, DOM){
+        Proto.init = function(models, DOM, limit){
+            if(typeof limit !== "undefined") this.limit = limit;
             Super.init.call(this);
             this.models = models;
             this.modelViews = {};
             this.DOM = DOM;
-            for(var i = 0; i < models.length; i++){
-                this.createModelView(model);
-            }
-            //console.log("model views created: "+this.modelViews)
             this.currentSortProperties = {};
             this.refresh();
+            this.subscribe('/collections/update', $.proxy(this.genNewViews, this));
             this.subscribe('/views/delete', $.proxy(this.refresh, this));
+            DS.MetaViewRegistry[this._id] = this;
         };
         Proto.clear = function(){
             var html = this.renderTemplate();
@@ -241,51 +305,154 @@ if(prereqs === false){
         Proto.genTemplateArguments = function(){
             return {};
         }
-        Proto.appendView = function(model){
-            if(this.modelViews[model._id] === undefined) this.createModelView(model);
+        Proto.appendView = function(modelID){
+            if(this.modelViews[modelID] === undefined) this.createModelView(modelID);
             else{
-                var view = this.modelViews[model._id];
-                view.DOM = this.genViewDom();
+                var model = DS.ModelRegistry[modelID]
+                var view = DS.ViewRegistry[this.modelViews[modelID]];
+                view.DOM = this.genViewDom(model);
                 view.render();
             }
         }
-        Proto.createModelView = function(model){
-            this.modelViews[model._id] = this.viewClass(model, this.genViewDom());
+        Proto.createModelView = function(modelID){
+            //console.log("creating model view with id: "+modelID)
+            //console.log(JSON.stringify( this.viewClass(DS.ModelRegistry[modelID], this.genViewDom()) ))
+            var model = DS.ModelRegistry[modelID]
+            this.modelViews[modelID] = this.viewClass(model, this.genViewDom(model))._id;
+            //console.log(this.modelViews)
         }
-        Proto.genViewDom = function(){
+        Proto.genViewDom = function(model){
             return $("<div></div>").appendTo(this.DOM.find('.content'));
         }
         Proto.refresh = function(){
-            this.models.removeDeleted();
+            //console.log("removing deleted modelviews")
+            this.removeDeleted();
+            //console.log("sorting models..")
             var models = this.sortModelsByProperties();
+            //console.log(models)
             this.clear();
-            for(var i = 0; i < models.length; i++){
+            var endLimit = models.length;
+            if(this.limit !== null){
+                //if the collection has been resized, make sure we are not displaying nothing
+                if(this.limitIndex > models.length-1){
+                    return this.lastPage();
+                }
+                endLimit = this.limit+this.limitIndex;
+            }
+            if(endLimit > models.length) endLimit = models.length;
+            for(var i = this.limitIndex; i < endLimit; i++){
                 this.appendView(models[i]);
+            }
+        }
+        Proto.genNewViews = function(_, collection){
+            if(collection === this.models){
+                this.refresh();
+            }
+        }
+        //goes to given page
+        Proto.switchPage = function(page){
+            if(page*this.limit > this.models.elements.length-1 || page < 0) return false;
+            this.limitIndex = page*this.limit;
+            this.refresh();
+        }
+        //goes forward 1 page
+        Proto.nextPage = function(){
+            if(this.limitIndex + this.limit > this.models.elements.length-1) return false;
+            this.limitIndex += this.limit;
+            this.refresh();
+        }
+        //goes back 1 page
+        Proto.previousPage = function(){
+            if(this.limitIndex - this.limit < 0) return false;
+            this.limitIndex -= this.limit;
+            this.refresh();
+        }
+        //goes to first page
+        Proto.firstPage = function(){
+            this.switchPage(0);
+        }
+        //goes to last page
+        Proto.lastPage = function(){
+            return this.switchPage(Math.floor( (this.models.elements.length-1) / this.limit ))
+        }
+        //returns current page number
+        Proto.getPage = function(){
+            return Math.floor(this.limitIndex/this.limit);
+        }
+        Proto.removeDeleted = function(){
+            for(var modelID in this.modelViews){
+                var viewID = this.modelViews[modelID]
+                var modelRef = DS.ModelRegistry[modelID]
+                //if view is undefined, the view's model reference is undefined, or view is set to deleted
+                if (typeof DS.ViewRegistry[viewID] === "undefined" || typeof modelRef === "undefined" || DS.ViewRegistry[viewID]._deleted === true){
+                    //console.log(modelID+" is deleted")
+                    delete this.modelViews[modelID]
+                    this.models.removeElement(modelRef)
+                }
             }
         }
         //override this function to make your own sort property processors to be able to sort items any way you want.
         Proto.sortModelsByProperties = function(){
-            if(this.currentSortProperties["paramName"] !== undefined){
+            if(this.models instanceof ModelCollection === true && this.currentSortProperties["paramName"] !== undefined){
                 var paramName = this.currentSortProperties["paramName"];
                 var ascending = true;
                 if (this.currentSortProperties["ascending"] !== undefined) ascending = this.currentSortProperties["ascending"];
                 return this.models.sortByParam(paramName, ascending, false);
             }
-            else return this.models.models;
+            else return this.models.elements;
+        }
+        Proto.del = function(){
+            delete DS.MetaViewRegistry[this._id]
+            Super.del.call(this)
         }
     });
     DS.MetaView = MetaView;
+    DS.MetaViewRegistry = {}
+
+    var ViewGroup = Class(Collection, function(Proto, Super){
+        Proto.init = function(elements){
+            Super.init.call(this, elements, DS.ViewRegistry)
+        }
+        Proto.hideAll = function(){
+            for (var i = 0; i < this.elements.length; i++) {
+                this.getObj(this.elements[i]).DOM.hide();
+            };
+        }
+        Proto.showAll = function(){
+            for (var i = 0; i < this.elements.length; i++) {
+                this.getObj(this.elements[i]).DOM.show();
+            };
+        }
+        Proto.getObj = function(objUUID){
+            var obj = DS.ViewRegistry[objUUID];
+            if(typeof obj === "undefined"){
+                obj = DS.MetaViewRegistry[objUUID];
+                if(typeof obj === "undefined"){
+                    return false;
+                }
+            }
+            return obj;
+        }
+    })
+    DS.ViewGroup = ViewGroup;
 
     var Controller = Class(DSClass, function(Proto, Super){
     	Proto.events = undefined;
     	Proto.init = function(){
             Super.init.call(this);
             for(var event in this.events){
+                //console.log("subscribing "+this.events[event]+" to event "+event)
                 this.subscribe('/views/'+event, this.events[event]);
             }
+            DS.ControllerRegistry[this._id] = this
     	};
+        Proto.del = function(){
+            delete DS.ControllerRegistry[this._id]
+            Super.del.call(this)
+        }
     });
     DS.Controller = Controller;
+    DS.ControllerRegistry = {}
 
 	exports.DeadSimpleMVC = DS;
 })(P, jQuery, uuid, window); 

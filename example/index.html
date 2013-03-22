@@ -8,7 +8,7 @@
 
 	<link rel="stylesheet" href="styles/tomorrow-night-bright.css">
 	<script src="lib/highlight.pack.js"></script>
-	<script>hljs.initHighlightingOnLoad();</script>
+	<script></script>
 
     <script src = "lib/p.js"></script>
     <script src = "lib/uuid.js"></script>
@@ -53,13 +53,16 @@
 <div class = "border" style = "display: block; height: 1px; background: #604941;"></div>
 
 <div id = "main" style = "display: block; text-align: center; background: #443631;">
-	<div id = "content" style = "text-align: left; background: #c5b5af; display: inline-block; width: 800px; border: 2px solid black; margin-top: 10px; margin-bottom: 10px; padding: 5px;">
+	<div id = "content" style = "text-align: left; background: #d7cdc8; display: inline-block; width: 800px; border: 2px solid black; margin-top: 10px; margin-bottom: 10px; padding: 5px;">
 		<h1>Dead Simple MVC</h1> 
 		<p style = "font-weight: bold;">Client-side MVC for busy people</p>
 		<h2>Download:</h2>
 			<p><a href= "DeadSimpleMVC.js">Development Release</a>
 			<p><a href= "DeadSimpleMVC.min.js">Production Release</a>
 			<p><a href= "DeadSimpleMVC.zip">Complete Package + examples</a>
+		<h2>Download Utilities:</h2>
+			<p><a href= "DeadSimpleUtils.js">Development Release</a>
+			<p><a href= "DeadSimpleUtils.min.js">Production Release</a>
 		<h2>Prerequesites:</h2>
 			<p><a href= "https://github.com/jayferd/pjs">P.js</a> for object-classes
 			<p><a href= "http://jquery.com/">jQuery</a> for DOM manipulation
@@ -74,6 +77,7 @@
 			<p><a href= "#todoapp">Todo App</a>
 			<p><a href= "#gc">Garbage Collection</a>
 			<p><a href= "#persistence">Persistence</a>
+			<p><a href= "#utils">Utility Library - DeadSimpleUtils</a>
 
 		<h2 id = "whatismvc">What is MVC?</h2>
 		<p>
@@ -89,175 +93,14 @@
 			<p>The application flow is as follows: The user interacts with views through the controller, which will update the models, which will re-render the view, and allow the user to see the results and interact some more.
 			<p>For rendering views, we will use the excellent handlebar library, though you can use any templating library you like.
 			<p>Let's create a simple model called cat and extend it with another model bobcat. We'll give the models some properties, such as the number of meows, the size of the cat, and the type of the cat.
-<pre><code class = 'javascript'>$(document).ready(function(){
-	(function($, Class, H, DS){
-		var Cat = Class(DS.Model, function(Proto, Super){
-			Proto.name = "cat";
-			Proto.type = "generic cat";
-			Proto.size = 2;
-			Proto.meows = 0;
-			//constructor
-			Proto.init = function(properties){
-				//call to Model's init method
-				Super.init.call(this, properties);
-				console.log("Hello my name is: "+this.name);
-			};
-			Proto.meow = function(){
-				this.modify({meows: this.meows + 1})
-			}
-		});
-		var Bobcat = Class(Cat, function(Proto, Super){
-			Proto.type = "bobcat";
-			Proto.init = function(properties){
-				Super.init.call(this, properties);
-				console.log("I am a bobcat.");
-			};
-		});
-	
-	})(jQuery, P, Handlebars, DeadSimpleMVC);
-});</code></pre>
+<pre><code class = 'javascript' id = 'introModelCode'></code></pre>
 			<p>P.js allows us to create and inherit objects without too much fuss, which means that we get to spend less time wrestling with javascript and more time writing our great code.
 			<p>Let's add a view to display our bobcats and then instantiate some cats and put them into the views.
-<pre><code class = 'javascript'><span class = "old">$(document).ready(function(){
-	(function($, Class, H, DS){
-		var Cat = Class(DS.Model, function(Proto, Super){
-			Proto.name = "cat";
-			Proto.type = "generic cat";
-			Proto.size = 2;
-			Proto.meows = 0;
-			//constructor
-			Proto.init = function(properties){
-				//call to Model's init method
-				Super.init.call(this, properties);
-				console.log("Hello my name is: "+this.name);
-			};
-			Proto.meow = function(){
-				this.modify({meows: this.meows + 1})
-			}
-		});
-		var Bobcat = Class(Cat, function(Proto, Super){
-			Proto.type = "bobcat";
-			Proto.init = function(properties){
-				Super.init.call(this, properties);
-				console.log("I am a bobcat.");
-			};
-		});
-	</span>
-		//use handlebars to create a simple template for displaying cats
-		var catTemplate = H.compile("\
-		    	&lt;div class = 'name'&gt;&lt;b&gt;{{model.name}}&lt;/b&gt; ({{model.type}})&lt;/div&gt;\
-		    	has meowed: &lt;span class = 'meows'&gt;{{model.meows}}&lt;/span&gt; times.&lt;br&gt;\
-		    	&lt;a class = 'hideme'&gt;hide view&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='meow'&gt;meow&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='evolve'&gt;evolve&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='delete'&gt;delete&lt;/a&gt;");
-
-		//create a view and add some actions to handle user input
-		//(any valid jQuery selectors and DOM events will work here)
-		var CatView = Class(DS.View, function(Proto, Super){
-	    	Proto.template = catTemplate;
-	    	Proto.actions = {
-	    	//DOM selector: [DOM Event, Custom View Event]
-				'.hideme': ['click', 'hideView'],
-				'.meow': ['click', 'meowCat'],
-				'.evolve': ['click', 'evolveCat'],
-				'.delete': ['click', 'deleteCat']
-			}
-	    });
-
-	    //instantiate our models
-	    var murky = Cat({name: "murky", size: 2});
-	    var bob = Bobcat({name: "bob", size: 4});
-	    //serialize bob to see what the model looks like as JSON
-	    console.log(bob.serialize());
-	    //create some views and link them to the models
-	    var catview1 = CatView(murky, $("#catViews #catView1"));
-	    var catview2 = CatView(bob, $("#catViews #catView2"));
-	<span class = "old">
-	})(jQuery, P, Handlebars, DeadSimpleMVC);
-});</span></code></pre>
+<pre><code class = 'javascript' id = 'introViewCode'></code></pre>
 
 	<p>Now let's hook up a controller to those custom events we created, and we're done! Our models now have views associated with them which automatically update when the model is altered through the controller. Because of the event system, any controller can respond to any view, so there is a decoupling between presentation and functionality that allows for a more modular design.
 
-<pre><code class = 'javascript'><span class = "old">$(document).ready(function(){
-	(function($, Class, H, DS){
-		var Cat = Class(DS.Model, function(Proto, Super){
-			Proto.name = "cat";
-			Proto.type = "generic cat";
-			Proto.size = 2;
-			Proto.meows = 0;
-			//constructor
-			Proto.init = function(properties){
-				//call to Model's init method
-				Super.init.call(this, properties);
-				console.log("Hello my name is: "+this.name);
-			};
-			Proto.meow = function(){
-				this.modify({meows: this.meows + 1})
-			}
-		});
-		var Bobcat = Class(Cat, function(Proto, Super){
-			Proto.type = "bobcat";
-			Proto.init = function(properties){
-				Super.init.call(this, properties);
-				console.log("I am a bobcat.");
-			};
-		});
-	
-		//use handlebars to create a simple template for displaying cats
-		var catTemplate = H.compile("\
-		    	&lt;div class = 'name'&gt;&lt;b&gt;{{model.name}}&lt;/b&gt; ({{model.type}})&lt;/div&gt;\
-		    	has meowed: &lt;span class = 'meows'&gt;{{model.meows}}&lt;/span&gt; times.&lt;br&gt;\
-		    	&lt;a class = 'hideme'&gt;hide view&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='meow'&gt;meow&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='evolve'&gt;evolve&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='delete'&gt;delete&lt;/a&gt;");
-
-		//create a view and add some actions to handle user input
-		//(any valid jQuery selectors and DOM events will work here)
-		var CatView = Class(DS.View, function(Proto, Super){
-	    	Proto.template = catTemplate;
-	    	Proto.actions = {
-	    	//DOM selector: [DOM Event, Custom View Event]
-				'.hideme': ['click', 'hideView'],
-				'.meow': ['click', 'meowCat'],
-				'.evolve': ['click', 'evolveCat'],
-				'.delete': ['click', 'deleteCat']
-			}
-	    });
-	</span>
-	    //events can receive any data, but in this case the views send a reference to themselves
-	    //so that the controller can manipulate them when the event matches.
-	    var CatController = Class(DS.Controller, function(Proto, Super){
-			Proto.events = {
-				'hideView': function(_, view){
-					view.DOM.hide();
-				},
-				'meowCat': function(_, view){
-					view.model.meow();
-				},
-				'evolveCat': function(_, view){
-					view.model.modify({name: "super "+view.model.name});
-				},
-				'deleteCat': function(_, view){
-					view.model.del();
-				}
-			};
-		});
-	<span class = "old">
-	    //instantiate our models
-	    var murky = Cat({name: "murky", size: 2});
-	    var bob = Bobcat({name: "bob", size: 4});
-	    //serialize bob to see what the model looks like as JSON
-	    console.log(bob.serialize());
-	    //create some views and link them to the models
-	    var catview1 = CatView(murky, $("#catViews #catView1"));
-	    var catview2 = CatView(bob, $("#catViews #catView2"));
-	</span>
-	    var catcontroller1 = CatController();
-	<span class = "old">
-	})(jQuery, P, Handlebars, DeadSimpleMVC);
-});</span></code></pre>
+<pre><code class = 'javascript' id = 'introControllerCode'></code></pre>
 
 	<h2>Demo</h2>
 	<div id = "catViews" style = "text-align:center;">
@@ -274,141 +117,7 @@
 
 	<h2>Let's add lists, collections, and sorting</h2>
 
-<pre><code class = 'javascript'><span class = "old">$(document).ready(function(){
-	(function($, Class, H, DS){
-		var Cat = Class(DS.Model, function(Proto, Super){
-			Proto.name = "cat";
-			Proto.type = "generic cat";
-			Proto.size = 2;
-			Proto.meows = 0;
-			//constructor
-			Proto.init = function(properties){
-				//call to Model's init method
-				Super.init.call(this, properties);
-				console.log("Hello my name is: "+this.name);
-			};
-			Proto.meow = function(){
-				this.modify({meows: this.meows + 1})
-			}
-		});
-		var Bobcat = Class(Cat, function(Proto, Super){
-			Proto.type = "bobcat";
-			Proto.init = function(properties){
-				Super.init.call(this, properties);
-				console.log("I am a bobcat.");
-			};
-		});
-	
-		//use handlebars to create a simple template for displaying cats
-		var catTemplate = H.compile("\
-		    	&lt;div class = 'name'&gt;&lt;b&gt;{{model.name}}&lt;/b&gt; ({{model.type}})&lt;/div&gt;\
-		    	has meowed: &lt;span class = 'meows'&gt;{{model.meows}}&lt;/span&gt; times.&lt;br&gt;\
-		    	&lt;a class = 'hideme'&gt;hide view&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='meow'&gt;meow&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='evolve'&gt;evolve&lt;/a&gt;&lt;br&gt;\
-		    	&lt;a class ='delete'&gt;delete&lt;/a&gt;");
-
-		//create a view and add some actions to handle user input
-		//(any valid jQuery selectors and DOM events will work here)
-		var CatView = Class(DS.View, function(Proto, Super){
-	    	Proto.template = catTemplate;
-	    	Proto.actions = {
-	    	//DOM selector: [DOM Event, Custom View Event]
-				'.hideme': ['click', 'hideView'],
-				'.meow': ['click', 'meowCat'],
-				'.evolve': ['click', 'evolveCat'],
-				'.delete': ['click', 'deleteCat']
-			}
-	    });
-	
-	    //events can receive any data, but in this case the views send a reference to themselves so that the controller can manipulate them when the event matches.
-	    var CatController = Class(DS.Controller, function(Proto, Super){
-			Proto.events = {
-				'hideView': function(_, view){
-					view.DOM.hide();
-				},
-				'meowCat': function(_, view){
-					view.model.meow();
-				},
-				'evolveCat': function(_, view){
-					view.model.modify({name: "super "+view.model.name});
-				},
-				'deleteCat': function(_, view){
-					view.model.del();
-				}
-			};
-		});
-	</span>
-		//meta views can also have templates, but they need to have a content div so that the generated views can be put into them and sorted.
-		var catListTemplate = H.compile("\
-				&lt;div class = 'header'&gt;&lt;h3&gt;Advanced Cat List&lt;/h3&gt; &lt;br&gt;\
-				Sort by: &lt;a class = 'name'&gt;name&lt;/a&gt;, \
-				&lt;a class = 'size'&gt;size&lt;/a&gt;&lt;/div&gt;&lt;br&gt;\
-			    	&lt;div class = 'content'&gt;&lt;/div&gt;&lt;br&gt;\
-			    	&lt;div class = 'footer'&gt;&lt;h3&gt;Displaying \
-			    	&lt;span class = 'numCats'&gt;{{catListLength}}&lt;/span&gt; Cats.&lt;/h3&gt;&lt;/div&gt;");
-
-		//meta views work the same way as views regarding events, so you can reuse your existing controllers or specify new ones just for meta displays.
-		var CatListView = Class(DS.MetaView, function(Proto, Super){
-			Proto.template = catListTemplate;
-			Proto.viewClass = CatView;
-	    	Proto.actions = {
-				'.header .name': ['click', 'sortCatsByName'],
-				'.header .size': ['click', 'sortCatsBySize']
-			}
-			//let's override the genTemplateArguments function to pass in the length of the cat list to the meta view, so that it can tell us how many cats are being displayed.
-			Proto.genTemplateArguments = function(){
-	            return {catListLength: this.models.models.length};
-        	}
-	    });
-
-		var CatListController = Class(DS.Controller, function(Proto, Super){
-				Proto.events = {
-					'sortCatsBySize': function(_, view){
-						view.currentSortProperties = {paramName: "size"};
-						view.refresh();
-					},
-					'sortCatsByName': function(_, view){
-						view.currentSortProperties = {paramName: "name"};
-						view.refresh();
-					}
-				};
-			});
-
-	<span class = "old">
-	    //instantiate our models
-	    var murky = Cat({name: "murky", size: 2});
-	    var bob = Bobcat({name: "bob", size: 4});
-	    //serialize bob to see what the model looks like as JSON
-	    console.log(bob.serialize());
-	    //create some views and link them to the models
-	    var catview1 = CatView(murky, $("#catViews #catView1"));
-	    var catview2 = CatView(bob, $("#catViews #catView2"));
-	    var catcontroller1 = CatController();
-	</span>
-	    
-	    var catlistcontroller1 = CatListController();
-
-	    //create a bunch of cat objects at once and assign them to a collection.
-	    var bunchOfCats = DS.Collection([
-	    	Cat({name: "big cat", size: 3}),
-	    	Cat({name: "medium cat", size: 2}),
-	    	Cat({name: "small cat", size: 1}),
-    		]);
-    	//add our existing cats to the collection
-	    bunchOfCats.addElement(murky);
-	    bunchOfCats.addElement(bob);
-
-    	var catList = DS.MetaView(bunchOfCats, $("#catView3"));
-    	//when creating a meta view, you have to pass it both the collection of objects and the view class that you want to replicate. the meta view will then automatically take care of creating, sorting, and destroying a view object for each model in the collection as needed.
-    	var sizeCatList = CatListView(bunchOfCats, $("#catView4"));
-    	//you can specify sort properties to create a "query" on your model collection. the view will display the collection in the specified order without altering the order of the original collection, so you can have many views of the same collection that each display it differently.
-    	sizeCatList.currentSortProperties = {paramName: "size"};
-    	sizeCatList.refresh();
-
-	<span class = "old">
-	})(jQuery, P, Handlebars, DeadSimpleMVC);
-});</span></code></pre>
+<pre><code class = 'javascript' id = "metaViewCollectionCode"></code></pre>
 	<p>All done! Now we have the two original views, as well as an unordered list view and an advanced list view that can sort the models in place. Each view will be automatically updated when the models are changed in some way. This allows you to organize your application in a sensible manner and comes with some good tools out of the box for building dynamic UI elements.
 	<h2>Demo</h2>
 	<div id = "catViews2" style = "text-align:center;">
@@ -422,100 +131,7 @@
 	<h2 id = "todoapp">Tutorial 2: Quintessential Todo List</h2>
 	<p>Let's use our newly gained skills to build a todo app. We'll also learn how to use triple braces in handlebars to make our templates modular.
 
-<pre><code class = 'javascript'>	//model for todo
-	var Todo = Class(DS.Model, function(Proto, Super){
-    		Proto.name = undefined;
-    		Proto.isDone = undefined;
-    		Proto.init = function(properties){
-    			Super.init.call(this, properties);
-    			this.isDone = false;
-    		}
-    		Proto.finish = function(){
-    			this.isDone = true;
-    		}
-    	});
-
-    	//templates and subtemplates
-    	var doneCheckTemplate = H.compile("\
-    		[X]");
-    	var notDoneCheckTemplate = H.compile("\
-    		&lt;span class = 'finish' style = 'cursor: pointer;'&gt;[ ]&lt;/span&gt;")
-    	//create the todo template. Handlebars allows us to use triple braces to insert unescaped html into our templates, so we can render pieces of templates as subtemplates and insert as needed to create a robust and modular view structure.
-    	var todoTemplate = H.compile("\
-    		{{{checkTemplate}}} {{model.name}}");
-    	var todoListTemplate = H.compile("\
-    		&lt;h2 class = 'todoListHeader'&gt;Things to do&lt;/h2&gt;\
-    		&lt;div class = 'add'&gt;&lt;input class = 'name' type = 'text'/&gt;&lt;input class = 'create' type = 'button' value = 'create'/&gt;&lt;/div&gt;\
-    		&lt;div class = 'sort'&gt;&lt;a&gt;Sort By Done&lt;/a&gt;&lt;/div&gt;\
-    		&lt;div class = 'content'&gt;&lt;/div&gt;\
-    		");
-
-    	//view for a single todo model
-    	var TodoView = Class(DS.View, function(Proto, Super){
-    		Proto.template = todoTemplate;
-    		//override the genTemplateArguments function to feed the checkbox subtemplate into the main template
-    		Proto.genTemplateArguments = function(){
-	            	var checkTemplate;
-	            	if(this.model.isDone === true){
-	            		checkTemplate = doneCheckTemplate();
-	            	}else{
-	            		checkTemplate = notDoneCheckTemplate();
-	            	}
-	            	return {checkTemplate: checkTemplate, model: this.model};
-        	}
-        	Proto.actions = {
-        		'.finish': ['click', 'finishTodo']
-        	}
-    	});
-
-    	var TodoListView = Class(DS.MetaView, function(Proto, Super){
-    		Proto.viewClass = TodoView;
-    		Proto.template = todoListTemplate;
-    		Proto.init = function(models, DOM){
-    			Super.init.call(this, models, DOM);
-    			this.currentSortProperties = {paramName: 'name', ascending: true};
-    		}
-    		//override the genViewDom function to produce view container divs with classes for styling
-    		Proto.genViewDom = function(){
-            		return $("&lt;div class = 'todoItem'&gt;&lt;/div&gt;").appendTo(this.DOM.find('.content'));
-        	}
-    		Proto.actions = {
-    			'.sort a': ['click', 'sortTodosDone'],
-    			'.add .create': ['click', 'addTodo']
-    		}
-    	});
-
-    	//you can split actions into view/meta view controllers or any way you want, but we'll just use one for now for simplicity.
-    	var TodoController = Class(DS.Controller, function (Proto, Super){
-    		Proto.events = {
-    			'addTodo': function(_, view){
-    				var name = view.DOM.find('.add .name').val();
-    				if(name !== ""){
-    					view.models.addElement(Todo({name: name}));
-    				}
-    				view.refresh();
-    			},
-    			'finishTodo': function(_, view){
-    				view.model.modify({isDone: true});
-    			},
-    			'sortTodosDone': function(_, view){
-    				var ascending = true;
-    				if(view.currentSortProperties.paramName === 'isDone' && view.currentSortProperties.ascending === true){
-    					ascending = false;
-    				};
-    				view.currentSortProperties = {paramName: 'isDone', ascending: ascending};
-    				view.refresh();
-    			}
-    		}
-    	});
-	
-		var tc = TodoController();
-		//make some grand plans
-		var tv = TodoListView(DS.Collection([
-			Todo({name: 'Teach Pinky Javascript'}),
-			Todo({name: 'Take Over the World'})
-			]), $("#todoList"));
-</code></pre>
+<pre><code id = 'todoListCode' class = 'javascript'></code></pre>
 
 	<h2>Demo</h2>
 	<div id = "todoList" style = 'text-align: center;'></div>
@@ -524,18 +140,20 @@
 
 	<h2 id = "gc">Garbage Collection</h2>
 	<p>If you're writing a large application, you'll want to keep track of how much RAM your javascript uses in the browser. If you keep creating views and models and then not using them, you'll have to delete all references to them. The object will only be garbage collected if all references to it are cut, so here our decoupling helps quite a bit.
-	<p>Every class in DSMVC is a subclass of DSClass, which has a randomly generated UUID (_id attribute) and a _deleted attribute, which if set to true through the del() function, will usually trigger all sorts of deletion behind the scenes. In general, you will want to cut any explicit references to your object (for a model this will mean deleting all views that point to it and removing it from any collections it is in) and unsubscribe from any pubsub events that it is subscribed to.
-	<p>By default, these are the connections you will have to cut to trigger garbage collection:
-	<p><strong>Controllers/MetaViews</strong>: The easiest. Simply unsubscribe from any events and set any variable that links to them to undefined. Unfortunately, it is not really necessary to delete controllers because they serve essentially as collections of static methods.
-	<p><strong>Views</strong>: Easy. Unsubscribe from model events, set any variable that links to them to undefined.
-	<p><strong>Collections</strong>: Medium. You'll have to set any MetaView links and any variable that links to them as undefined.
-	<p><strong>Models</strong>: Hard. Since you will have a bunch of explicit links from views and collections to models, you'll have to set all those to undefined before the model is marked for gc. The easiest way to do this is to create a method on your controller that explicitly deletes all references to that model according to your application design. 
-	<p>If you want a completely modular application structure, you can create a view-model registry that registers each type of model with each type of view on the fly. You can then use instanceof to check whether the model you are deleting is associated with each view in a section of a global view hash.
+	<p>Every class in DSMVC is a subclass of DSClass, which has a randomly generated UUID (_id attribute) and a del() function, which sets the _deleted attribute to true and will usually trigger all sorts of deletion behind the scenes. In general, you will want to cut any explicit references to your object (for a model this will mean deleting all views that point to it and removing it from any collections it is in) and unsubscribe from any pubsub events that it is subscribed to.
+	<p>By default, DSMVC stores model references as UUID strings, which can be used to get the actual reference by accessing DS.ModelRegistry. All references are done this way to prevent links between objects for simple garbage collection and completely decoupled code. If you have explicit links in your code, you'll have to set all those to undefined before the model is marked for gc. The easiest way to do this is to create a method on your controller that explicitly deletes all references to that model according to your application design. 
 	<p>If you're super concerned about memory usage, you can use the delete keyword instead of setting variables to undefined, but there are some caveats with this approach. A great tutorial on using delete is <a href= 'http://perfectionkills.com/understanding-delete/'>here</a>.
-
+	<p>If you want a completely modular application structure, you can create use the view, model, collection, etc... registries that abstract each connection. This may be a little more work, because you may have to get creative to reference certain things from certain other things, but it will save you a lot of headache later when it comes time to delete or swap objects.
 
 	<h2 id = "persistence">Persistence</h2>
-	<p>The library does not come with any persistence mechanisms, because its primary function is to simplify and streamline client-side application design. How you persist your models and state is up to you. The model object does have a serialize() method though, which will turn the model's fields into a JSON string that you can easily use to persist through a RESTful connection or to the browser's local storage. You can then parse the JSON string and feed the results into a new Model object to recreate the model at a later time.
+	<p>The library does not come with any persistence mechanisms, because its primary function is to simplify and streamline client-side application design. How you persist your models and state is up to you. The model object does have a serialize() method though, which will turn the model's fields into a JSON string (or an object) that you can easily use to persist through a RESTful connection or to the browser's local storage. You can then parse the JSON string and feed the results into a new Model object to recreate the model at a later time. 
+	<p>Serialize can also be used to duplicate objects during processing, because it can be made to return "general" versions of objects which do not contain any object metadata like the UUID, so they can be used as cookie cutter forms for new objects.
+
+	<h2 id = "utils">Utility Library - DeadSimpleUtils</h2>
+	<p>DeadSimpleMVC comes with an optional library called DeadSimpleUtils.js that requires it and Handlebars. This is a utility library of classes built on top of and in concert with the main library to accomplish common client js tasks, such as animations, building forms, and popups.
+	<p><strong>DS.Utils.Anim</strong> contains an animations array that you can add functions to to play them once every 13 milliseconds until they are removed. You can use this to change the css values of some DOM to create cool real time effects.
+	<p><strong>DS.Utils.Form</strong> is a simple html form generator that includes validation regex for various common input types and comes with text, password, select, checkbox, and hidden input support out of the box. It also doubles as a good example of how to build dynamic apps with DeadSimpleMVC.
+	<p><strong>DS.Utils.Popup</strong> contains a basic popup with an OK button that is designed to be statically positioned via CSS and used as a dialog with the page.
 
 	<p><a href = "#">Top</a>
 	</div>
@@ -548,8 +166,7 @@
 	</div>
 </div>
 
-<script>
-jQuery(document).ready(function(){
+<script id = "mainScript">jQuery(document).ready(function(){
 	(function($, Class, H, DS){
 		var Cat = Class(DS.Model, function(Proto, Super){
 			Proto.name = "cat";
@@ -563,6 +180,7 @@ jQuery(document).ready(function(){
 				console.log("Hello my name is: "+this.name);
 			};
 			Proto.meow = function(){
+				//always edit models through the modify() function if you want their associated views to be updated accordingly
 				this.modify({meows: this.meows + 1})
 			}
 		});
@@ -574,62 +192,71 @@ jQuery(document).ready(function(){
 			};
 		});
 	
+		//use handlebars to create a simple template for displaying cats
 		var catTemplate = H.compile("\
-		    	<div class = 'name'><b>{{model.name}}</b> ({{model.type}})</div>\
-		    	has meowed: <span class = 'meows'>{{model.meows}}</span> times.<br>\
-		    	<a class = 'hideme'>hide view</a><br>\
-		    	<a class ='meow'>meow</a><br>\
-		    	<a class ='evolve'>evolve</a><br>\
-		    	<a class ='delete'>delete</a>");
+			<div class = 'name'><b>{{model.name}}</b> ({{model.type}})</div>\
+			has meowed: <span class = 'meows'>{{model.meows}}</span> times.<br>\
+			<a class = 'hideme'>hide view</a><br>\
+			<a class ='meow'>meow</a><br>\
+			<a class ='evolve'>evolve</a><br>\
+			<a class ='delete'>delete</a>");
 
+		//create a view and add some actions to handle user input (any valid jQuery selectors and DOM events will work here)
 		var CatView = Class(DS.View, function(Proto, Super){
-	    	Proto.template = catTemplate;
-	    	Proto.actions = {
-				'.hideme': ['click', 'hideView'],
-				'.meow': ['click', 'meowCat'],
-				'.evolve': ['click', 'evolveCat'],
-				'.delete': ['click', 'deleteCat']
+			Proto.template = catTemplate;
+			Proto.actions = {
+				//DOM selector: {DOM Event: [Set of Custom View Events to fire], DOM Event2: [...], ...}
+				'.hideme': {'click': ['hideView']},
+				'.meow': {'click': ['meowCat']},
+				'.evolve': {'click': ['evolveCat']},
+				'.delete': {'click': ['deleteCat']}
 			}
-	    });
+		});
 
-	   	var CatController = Class(DS.Controller, function(Proto, Super){
+		//events can receive any data, but in this case the views send a reference to themselves so that the controller can manipulate them when the event matches.
+		var CatController = Class(DS.Controller, function(Proto, Super){
 			Proto.events = {
 				'hideView': function(_, view){
 					view.DOM.hide();
 				},
+				//DSMVC stores model references as UUID strings, which can be used to get the actual reference by accessing DS.ModelRegistry. All references are done this way to prevent links between objects for simple garbage collection and completely decoupled code.
 				'meowCat': function(_, view){
-					view.model.meow();
+					view.getModel().meow();
 				},
 				'evolveCat': function(_, view){
-					view.model.modify({name: "super "+view.model.name});
+					var model = view.getModel()
+					model.modify({name: "super "+model.name});
 				},
 				'deleteCat': function(_, view){
-					view.model.del();
+					view.getModel().del();
 				}
 			};
 		});
 
-	    var catListTemplate = H.compile("\
-	    		<div class = 'header'><h3>Advanced Cat List</h3> <br>\
-	    		Sort by: <a class = 'name'>name</a>, <a class = 'size'>size</a></div><br>\
-		    	<div class = 'content'></div><br>\
-		    	<div class = 'footer'><h3>Displaying <span class = 'numCats'>{{catListLength}}</span> Cats.</h3></div>");
+		//meta views can also have templates, but they need to have a content div so that the generated views can be put into them and sorted.
+		var catListTemplate = H.compile("\
+				<div class = 'header'><h3>Advanced Cat List</h3> <br>\
+				Sort by: <a class = 'name'>name</a>, <a class = 'size'>size</a></div><br>\
+				<div class = 'content'></div><br>\
+				<div class = 'footer'><h3>Displaying <span class = 'numCats'>{{catListLength}}</span> Cats.</h3></div>");
 
-	    var SimpleCatListView = Class(DS.MetaView, function(Proto, Super){
-	    	Proto.viewClass = CatView;
-	    })
+		var SimpleCatListView = Class(DS.MetaView, function(Proto, Super){
+			Proto.viewClass = CatView;
+		})
 
+		//meta views work the same way as views regarding events, so you can reuse your existing controllers or specify new ones just for meta displays.
 		var CatListView = Class(DS.MetaView, function(Proto, Super){
 			Proto.template = catListTemplate;
 			Proto.viewClass = CatView;
-	    	Proto.actions = {
-				'.header .name': ['click', 'sortCatsByName'],
-				'.header .size': ['click', 'sortCatsBySize']
+			Proto.actions = {
+				'.header .name': {'click': ['sortCatsByName']},
+				'.header .size': {'click': ['sortCatsBySize']}
 			}
+			//let's override the genTemplateArguments function to pass in the length of the cat list to the meta view, so that it can tell us how many cats are being displayed.
 			Proto.genTemplateArguments = function(){
-	            return {catListLength: this.models.models.length};
-        	}
-	    });
+				return {catListLength: this.models.elements.length};
+			}
+		});
 
 		var CatListController = Class(DS.Controller, function(Proto, Super){
 			Proto.events = {
@@ -644,117 +271,185 @@ jQuery(document).ready(function(){
 			};
 		});
 
-	    var murky = Cat({name: "murky", size: 2});
-	    var bob = Bobcat({name: "bob", size: 4});
-	    var catcontroller1 = CatController();
-	    var catlistcontroller1 = CatListController();
-	   	var catview1 = CatView(murky, $("#catViews #catView1"));
-	    var catview2 = CatView(bob, $("#catViews #catView2"));
+		//instantiate our models
+		var murky = Cat({name: "murky", size: 2});
+		var bob = Bobcat({name: "bob", size: 4});
+		//serialize bob to see what the model looks like as JSON
+		console.log(bob.serialize());
+		var catcontroller1 = CatController();
+		var catlistcontroller1 = CatListController();
+		//create some views and link them to the models
+			var catview1 = CatView(murky, $("#catViews #catView1"));
+		var catview2 = CatView(bob, $("#catViews #catView2"));
 
-	    var bunchOfCats = DS.Collection([
-	    	Cat({name: "big cat", size: 3}),
-	    	Cat({name: "medium cat", size: 2}),
-	    	Cat({name: "small cat", size: 1}),
-    	]);
-	    bunchOfCats.addElement(murky);
-	    bunchOfCats.addElement(bob);
+		//create a bunch of cat objects at once and assign them to a collection. use ModelCollection, which is a subclass of regular Collection (which can be a collection of anything) and has sorting methods
+		var bunchOfCats = DS.ModelCollection([
+			Cat({name: "big cat", size: 3}),
+			Cat({name: "medium cat", size: 2}),
+			Cat({name: "small cat", size: 1}),
+		]);
+		bunchOfCats.addElement(murky);
+		bunchOfCats.addElement(bob);
 
-	    var catview3 = CatView(murky, $("#catViews2 #catView1"));
-	    var catview4 = CatView(bob, $("#catViews2 #catView2"));
-    	var catList = SimpleCatListView(bunchOfCats, $("#catView3"));
-    	var sizeCatList = CatListView(bunchOfCats, $("#catView4"));
-    	sizeCatList.currentSortProperties = {paramName: "size"};
-    	sizeCatList.refresh();
+		var catview3 = CatView(murky, $("#catViews2 #catView1"));
+		var catview4 = CatView(bob, $("#catViews2 #catView2"));
+		var catList = SimpleCatListView(bunchOfCats, $("#catView3"));
+		//when creating a meta view, you have to pass it the collection of objects that you want to replicate. the meta view will then automatically take care of creating, sorting, and destroying a view object for each model in the collection as needed.
+		var sizeCatList = CatListView(bunchOfCats, $("#catView4"));
+		//you can specify sort properties to create a "query" on your model collection. the view will display the collection in the specified order without altering the order of the original collection, so you can have many views of the same collection that each display it differently.
+		sizeCatList.currentSortProperties = {paramName: "size"};
+		sizeCatList.refresh();
 
-    	var Todo = Class(DS.Model, function(Proto, Super){
-    		Proto.name = undefined;
-    		Proto.isDone = undefined;
-    		Proto.init = function(properties){
-    			Super.init.call(this, properties);
-    			this.isDone = false;
-    		}
-    		Proto.finish = function(){
-    			this.isDone = true;
-    		}
-    	});
+		//TODO LIST
 
-    	var doneCheckTemplate = H.compile("\
-    		[X]");
-    	var notDoneCheckTemplate = H.compile("\
-    		<span class = 'finish' style = 'cursor: pointer;'>[ ]</span>")
-    	//create the todo template. Handlebars allows us to use triple braces to insert unescaped html into our templates, so we can render pieces of templates as subtemplates and insert as needed to create a robust and modular view structure.
-    	var todoTemplate = H.compile("\
-    		{{{checkTemplate}}} {{model.name}}");
-    	var todoListTemplate = H.compile("\
-    		<h2 class = 'todoListHeader'>Things to do</h2>\
-    		<div class = 'add'><input class = 'name' type = 'text'/><input class = 'create' type = 'button' value = 'create'/></div>\
-    		<div class = 'sort'><a>Sort By Done</a></div>\
-    		<div class = 'content'></div>\
-    		");
+		//model for todo
+		var Todo = Class(DS.Model, function(Proto, Super){
+			Proto.name = undefined;
+			Proto.isDone = undefined;
+			Proto.init = function(properties){
+				Super.init.call(this, properties);
+				this.isDone = false;
+			}
+			Proto.finish = function(){
+				this.isDone = true;
+			}
+		});
 
-    	var TodoView = Class(DS.View, function(Proto, Super){
-    		Proto.template = todoTemplate;
-    		Proto.genTemplateArguments = function(){
-            	var checkTemplate;
-            	if(this.model.isDone === true){
-            		checkTemplate = doneCheckTemplate();
-            	}else{
-            		checkTemplate = notDoneCheckTemplate();
-            	}
-            	return {checkTemplate: checkTemplate, model: this.model};
-        	}
-        	Proto.actions = {
-        		'.finish': ['click', 'finishTodo']
-        	}
-    	});
+		//templates and subtemplates
+		var doneCheckTemplate = H.compile("\
+			[X]");
+		var notDoneCheckTemplate = H.compile("\
+			<span class = 'finish' style = 'cursor: pointer;'>[ ]</span>")
+		//create the todo template. Handlebars allows us to use triple braces to insert unescaped html into our templates, so we can render pieces of templates as subtemplates and insert as needed to create a robust and modular view structure.
+		var todoTemplate = H.compile("\
+			{{{checkTemplate}}} {{model.name}}");
+		var todoListTemplate = H.compile("\
+			<h2 class = 'todoListHeader'>Things to do</h2>\
+			<div class = 'add'><input class = 'name' type = 'text'/><input class = 'create' type = 'button' value = 'create'/></div>\
+			<div class = 'sort'><a>Sort By Done</a></div>\
+			<div class = 'content'></div>\
+			");
 
-    	var TodoListView = Class(DS.MetaView, function(Proto, Super){
-    		Proto.viewClass = TodoView;
-    		Proto.template = todoListTemplate;
-    		Proto.init = function(models, DOM){
-    			Super.init.call(this, models, DOM);
-    			this.currentSortProperties = {paramName: 'name', ascending: true};
-    		}
-    		Proto.genViewDom = function(){
-            	return $("<div class = 'todoItem'></div>").appendTo(this.DOM.find('.content'));
-        	}
-    		Proto.actions = {
-    			'.sort a': ['click', 'sortTodosDone'],
-    			'.add .create': ['click', 'addTodo']
-    		}
-    	});
+		//view for a single todo model
+		var TodoView = Class(DS.View, function(Proto, Super){
+			Proto.template = todoTemplate;
+			//override the genTemplateArguments function to feed the checkbox subtemplate into the main template
+			Proto.genTemplateArguments = function(){
+		    	var checkTemplate;
+		    	var model = this.getModel()
+		    	if(model.isDone === true){
+		    		checkTemplate = doneCheckTemplate();
+		    	}else{
+		    		checkTemplate = notDoneCheckTemplate();
+		    	}
+		    	return {checkTemplate: checkTemplate, model: model};
+			}
+			Proto.actions = {
+				'.finish': {'click': ['finishTodo']}
+			}
+		});
 
-    	var TodoController = Class(DS.Controller, function (Proto, Super){
-    		Proto.events = {
-    			'addTodo': function(_, view){
-    				var name = view.DOM.find('.add .name').val();
-    				if(name !== ""){
-    					view.models.addElement(Todo({name: name}));
-    				}
-    				view.refresh();
-    			},
-    			'finishTodo': function(_, view){
-    				view.model.modify({isDone: true});
-    			},
-    			'sortTodosDone': function(_, view){
-    				var ascending = true;
-    				if(view.currentSortProperties.paramName === 'isDone' && view.currentSortProperties.ascending === true){
-    					ascending = false;
-    				};
-    				view.currentSortProperties = {paramName: 'isDone', ascending: ascending};
-    				view.refresh();
-    			}
-    		}
-    	});
-	
+		var TodoListView = Class(DS.MetaView, function(Proto, Super){
+			Proto.viewClass = TodoView;
+			Proto.template = todoListTemplate;
+			Proto.init = function(models, DOM){
+				Super.init.call(this, models, DOM);
+				this.currentSortProperties = {paramName: 'name', ascending: true};
+			}
+			//override the genViewDom function to produce view container divs with classes for styling
+			Proto.genViewDom = function(){
+		    	return $("<div class = 'todoItem'></div>").appendTo(this.DOM.find('.content'));
+			}
+			Proto.actions = {
+				'.sort a': {
+					'click': ['sortTodosDone']
+				},
+				'.add .create': {
+					'click': ['addTodo']
+				}
+			}
+		});
+
+		//you can split actions into view/meta view controllers or any way you want, but we'll just use one for now for simplicity.
+		var TodoController = Class(DS.Controller, function (Proto, Super){
+			Proto.events = {
+				'addTodo': function(_, view){
+					var name = view.DOM.find('.add .name').val();
+					if(name !== ""){
+						//create a new todo and add it to the collection. the metaview will take care of placing the todo.
+						view.models.addElement( Todo({name: name}) );
+						view.refresh();
+					}
+				},
+				'finishTodo': function(_, view){
+					view.getModel().modify({isDone: true});
+				},
+				'sortTodosDone': function(_, view){
+					var ascending = true;
+					if(view.currentSortProperties.paramName === 'isDone' && view.currentSortProperties.ascending === true){
+						ascending = false;
+					};
+					view.currentSortProperties = {paramName: 'isDone', ascending: ascending};
+					view.refresh();
+				}
+			}
+		});
+
 		var tc = TodoController();
-		var tv = TodoListView(DS.Collection([
+		//make some grand plans
+		var tv = TodoListView(DS.ModelCollection([
 			Todo({name: 'Teach Pinky Javascript'}),
 			Todo({name: 'Take Over the World'})
 			]), $("#todoList"));
 
 	})(jQuery, P, Handlebars, DeadSimpleMVC);
-});
+});</script>
+
+
+
+<script>
+//fill and style tutorial boxes
+jQuery(document).ready(function(){
+	var mainCode = $("#mainScript").html().replace(/</g, '&lt;').replace(/>/g, '&gt;').split('\n')
+	console.log(mainCode)
+
+	var fillCode = function(beginLine, endLine, removeTabs, old){
+		var codeHtml = "";
+		var lineHtml;
+		var removeTabRegexTemplate = "^";
+		var removeTabRegex;
+		if(typeof removeTabs !== "undefined"){
+			for (var i = 0; i < removeTabs; i++) {
+				removeTabRegexTemplate += "\t"
+			};
+			removeTabRegex = new RegExp(removeTabRegexTemplate, "g")
+		}
+		for(var i = beginLine; i <= endLine; i++){
+			lineHtml = mainCode[i]+'\n'
+			if(typeof removeTabs !== "undefined"){
+				lineHtml = lineHtml.replace(removeTabRegex, '')
+			}
+			if(old === true) lineHtml = "<span class = 'old'>"+lineHtml+"</span>"
+			codeHtml += lineHtml;
+		}
+		return codeHtml
+	}
+
+	$("#introModelCode").html(fillCode(1, 1, 1)+fillCode(2, 24, 2)+fillCode(236, 236, 1))
+
+	$("#introViewCode").html(fillCode(1, 1, 1, true)+fillCode(26, 45, 2)+fillCode(105, 109,2)+fillCode(236, 236, 1, true))
+
+	$("#introControllerCode").html(fillCode(1, 1, 1, true)+fillCode(47, 65, 2)+fillCode(236, 236, 1, true))
+
+	$("#metaViewCollectionCode").html(fillCode(1, 1, 1, true)+fillCode(67, 132, 2)+fillCode(236, 236, 1, true))
+
+	$("#todoListCode").html(fillCode(1, 1, 1)+fillCode(134, 235, 2)+fillCode(236, 236, 1))
+
+	hljs.tabReplace = '    ';
+
+	$('pre code').each(function(i, e) {hljs.highlightBlock(e)});
+})
+
 </script>
   </body>
 </html>
